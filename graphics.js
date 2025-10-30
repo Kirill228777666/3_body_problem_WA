@@ -27,6 +27,7 @@ var graphics = (function() {
   function drawBody(position, size, bodyElement) {
     var newLeft = position.x - (size / 2);
     var newTop = position.y - (size / 2);
+    // ИСПРАВЛЕНО: Возвращён метод позиционирования через transform
     bodyElement.style.transform = `translate(${newLeft}px, ${newTop}px)`;
   }
 
@@ -137,7 +138,8 @@ var graphics = (function() {
     if (!context) { return true; }
     return false;
   }
-
+  
+  // ДОБАВЛЕНО: Логика для смены вида самих тел
   function applyCircleModeStyles() {
     var container = document.querySelector(".ThreeBodyProblem-container");
     if (circlesMode) {
@@ -157,7 +159,8 @@ var graphics = (function() {
       }
     }
   }
-
+  
+  // ДОБАВЛЕНО: Функция для управления режимом отображения тел
   function setCircleMode(flag) {
     circlesMode = !!flag;
     applyCircleModeStyles();
@@ -198,6 +201,6 @@ var graphics = (function() {
     getBoundaries: getBoundaries,
     setApproximation: setApproximation,
     drawApproximationCurve: drawApproximationCurve,
-    setCircleMode: setCircleMode
+    setCircleMode: setCircleMode // ДОБАВЛЕНО: Экспорт функции
   };
 })();
