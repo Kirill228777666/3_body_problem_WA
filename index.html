@@ -3,18 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Симулятор трёх тел</title>
-
-  <!-- Фавиконка-заглушка, чтобы не было 404 -->
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
-
-  <!-- Шрифты и базовые стили -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css"><!-- если файла нет, можно удалить эту строку -->
-
-  <!-- MathJax -->
+  <link rel="stylesheet" href="style.css">
+  
   <script>
     window.MathJax = {
       tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
@@ -22,46 +16,13 @@
     };
   </script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-
-  <!-- Локальные стили -->
+  
   <style>
-    /* Кружки вместо картинок в пресетах FigureEight/Chaotic */
-    .is-circles-mode .ThreeBodyProblem-bodyImage { display: none !important; }
-    .ThreeBodyProblem-sun,
-    .ThreeBodyProblem-earth,
-    .ThreeBodyProblem-jupiter {
-      position: absolute;
-      left: 0; top: 0;
-      width: 60px; height: 60px;
-    }
-    .ThreeBodyProblem-bodyImage {
-      width: 100%;
-      height: 100%;
-      display: block;
-      user-select: none;
-      -webkit-user-drag: none;
-      pointer-events: none;
-    }
-    .as-circle {
-      border-radius: 50%;
-      box-shadow: 0 0 6px rgba(0,0,0,0.35);
-    }
-
-    /* Кружки-иконки на кнопках выбора тела — уменьшил размер (как в эталоне) */
-    .ThreeBodyProblem-leftBottomButton {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 48px;
-      height: 48px;
-      border-radius: 8px;
-      background: transparent;
-    }
-    .ThreeBodyProblem-leftBottomImage {
-      width: 44px;
-      height: 44px;
-      display: block;
-    }
+    /* ИСПРАВЛЕНО: Добавлены стили для корректного переключения иконок */
+    /* Добавлено !important для принудительного применения правил display */
+    .mass-icon-circle { display: none !important; }
+    .is-circles-mode .mass-icon-image { display: none !important; }
+    .is-circles-mode .mass-icon-circle { display: inline-block !important; }
     .mass-circle {
       display: inline-block;
       width: 26px;
@@ -70,14 +31,12 @@
       box-shadow: 0 0 6px rgba(0,0,0,0.35);
       vertical-align: middle;
     }
-    
-    /* Улучшенное переключение иконок масс */
-    .mass-icon-circle { display: none; }
-    .is-circles-mode .mass-icon-image { display: none; }
-    .is-circles-mode .mass-icon-circle { display: inline-block; }
+    .as-circle {
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0,0,0,0.35);
+    }
+    .is-circles-mode .ThreeBodyProblem-bodyImage { display: none !important; }
 
-
-    /* Блок аппроксимаций — как в образце */
     .approximation-display-style {
       background-color: rgba(28, 37, 65, 0.7);
       padding: 15px 20px;
@@ -87,19 +46,30 @@
       max-width: 700px;
       color: #f0f0f0;
     }
-    .approximation-display-style h4 { margin: 0 0 15px; text-align: center; font-weight: 600; }
+    .approximation-display-style h4 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+      font-weight: 600;
+    }
     .approximation-display-style pre {
-      font-family: monospace; font-size: 1.1em; text-align: left; margin: 10px auto;
-      padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 1.1em;
+      text-align: left;
+      margin: 10px auto;
+      padding: 10px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+      white-space: pre-wrap;
     }
     #formula-text-0 { color: #ff8b22; }
     #formula-text-1 { color: #6c81ff; }
     #formula-text-2 { color: #4ccd7a; }
   </style>
+
 </head>
 <body>
 
-  <!-- Лоадер -->
   <div id="loader-wrapper">
     <div class="loader">
       <div class="inner one"></div>
@@ -117,8 +87,6 @@
   <p id="ThreeBodyProblem-notSupportedMessage" class="ThreeBodyProblem-alert ThreeBodyProblem-isHiddenBlock">
     Пожалуйста, используйте современный браузер для просмотра симуляции.
   </p>
-
-  <!-- Сцена -->
   <div class="ThreeBodyProblem-container isFullScreenWide isUnselectable">
     <div class="ThreeBodyProblem-sun">
       <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/sun.png" class="ThreeBodyProblem-spin ThreeBodyProblem-bodyImage" alt="Солнце" />
@@ -131,11 +99,12 @@
     </div>
     <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/center_of_mass.png" alt="Центр масс" class="ThreeBodyProblem-centerOfMass" />
     <canvas class="ThreeBodyProblem-canvas"></canvas>
-
     <div class="ThreeBodyProblem-hudContainer">
-      <div class="ThreeBodyProblem-hudContainerChild"></div>
-
+      <div class="ThreeBodyProblem-hudContainerChild">
+      </div>
+      
       <div class="ThreeBodyProblem-leftBottomButtonCantainer">
+        <!-- ИСПРАВЛЕНО: Обновлена структура кнопок -->
         <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass1Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 1">
           <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_one_icon.png" alt="Масса 1" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
           <span class="mass-circle mass-icon-circle" style="background:#ff8b22"></span>
@@ -152,28 +121,25 @@
           <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/clock_icon.png" alt="Скорость" class="ThreeBodyProblem-leftBottomImage">
         </a>
         <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-softeningButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Смягчение">
-          <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Rya2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xOC41IDE4LjVhNi41IDYuNSAwIDEgMCAwLTEzIi8+PHBhdGggZD0iTTUuNSAxMmgxMyIvPjwvc3ZnPg==" alt="Смягчение" class="ThreeBodyProblem-leftBottomImage">
+          <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTguNSAxOC41YTYuNSA2LjUgMCAxIDAgMC0xMyIvPjxwYXRoIGQ9Ik01LjUgMTJoMTMiLz48L3N2Zz4=" alt="Смягчение" class="ThreeBodyProblem-leftBottomImage">
         </a>
-        <a id="info-button" class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Информация">
-          <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Rya2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PGxpbmUgeDE9IjEyIiB5MT0iMTYiIHgyPSIxMiIgeTI9IjEyIj48L2xpbmU+PGxpbmUgeDE9IjEyIiB5MT0iOCIgeDI9IjEyLjAxIiB5Mj0iOCI+PC9saW5lPjwvc3ZnPg==" alt="Информация" class="ThreeBodyProblem-leftBottomImage">
+        <a id="info-button" class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Инструкция">
+          <img src="https://www.nvdemarie.be/files/modules/products/53/Infobalie.png" alt="Инструкция" class="ThreeBodyProblem-leftBottomImage">
         </a>
       </div>
-
+      
       <div class="ThreeBodyProblem-rightBottomButtonContainer">
-        <button class="ThreeBodyProblem-pause ThreeBodyProblem-leftBottomButton" aria-pressed="false" title="Пауза / Продолжить">
-          Пауза
-        </button>
-        <a class="ThreeBodyProblem-reload ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Перезапуск">
-          <img src="https://evgenii.com/image/blog/2016-09-17-ridiculous-strawberry-picking/reload_icon.png" alt="Перезапуск" class="ThreeBodyProblem-reloadIcon">
-        </a>
+          <button class="ThreeBodyProblem-pause ThreeBodyProblem-button">Пауза</button>
+          <a class="ThreeBodyProblem-reload ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Перезапуск">
+            <img src="https://evgenii.com/image/blog/2016-09-17-ridiculous-strawberry-picking/reload_icon.png" alt="Перезапуск" class="ThreeBodyProblem-reloadIcon">
+          </a>
       </div>
     </div>
   </div>
-
-  <!-- Панель управления -->
+  
   <div class="ThreeBodyProblem-controlsArea">
     <div class="ThreeBodyProblem-isTextCentered ThreeBodyProblem-hasTopMarginSmall ThreeBodyProblem-hasNegativeBottomMarginNormal isUnselectable">
-      <span class="ThreeBodyProblem-sliderLabel"></span>
+      <span class="ThreeBodyProblem-sliderLabel">0.01</span>
     </div>
     <div class="SickSlider ThreeBodyProblem-slider isUnselectable">
       <div class="SickSlider-stripe"></div>
@@ -191,7 +157,6 @@
     </div>
   </div>
 
-  <!-- Графики Chart.js -->
   <div id="charts-container" style="max-width: 1100px; margin: 20px auto;">
     <details id="vel-details" style="margin-bottom: 10px;">
       <summary style="cursor:pointer; font-weight:600;">График скоростей (раскрыть/свернуть)</summary>
@@ -210,7 +175,7 @@
       <div id="approximation-display" class="approximation-display-style">
         <h4>Мгновенные аппроксимации траекторий</h4>
         <div style="text-align: center; margin-bottom: 15px;">
-          <button class="ThreeBodyProblem-button" id="download-log-button">Скачать лог формул</button>
+           <button class="ThreeBodyProblem-button" id="download-log-button">Скачать лог формул</button>
         </div>
         <pre id="formula-text-0"></pre>
         <pre id="formula-text-1"></pre>
@@ -219,28 +184,62 @@
     </details>
   </div>
 
-  <!-- Модалка -->
   <div id="info-modal" class="modal-overlay is-hidden">
     <div class="modal-content">
       <button class="modal-close-button" title="Закрыть">&times;</button>
-      <div class="instruction-container"></div>
+      <div class="instruction-container">
+        <!-- ИЗМЕНЕНИЕ НАЧАЛО -->
+        <h2>Инструкция по использованию симулятора</h2>
+        <p>
+          Добро пожаловать в интерактивный симулятор задачи трёх тел! Эта программа позволяет моделировать движение трёх объектов в пространстве под действием их взаимного гравитационного притяжения.
+        </p>
+
+        <h3>Как пользоваться</h3>
+        <ol>
+          <li><strong>Выберите пресет:</strong> Начните с выбора одного из готовых сценариев в нижней части экрана (например, "Восьмёрка" или "Солнце, Земля и Юпитер"). Это установит начальные массы, положения и скорости тел.</li>
+          <li><strong>Наблюдайте:</strong> Симуляция начнётся автоматически. Вы увидите, как тела движутся и оставляют за собой цветные траектории.</li>
+          <li><strong>Экспериментируйте:</strong> Используйте элементы управления для изменения параметров симуляции в реальном времени.</li>
+        </ol>
+
+        <h3>Элементы управления</h3>
+        <ul>
+          <li><strong>Кнопки пресетов:</strong> ("Восьмёрка", "Солнце, Земля и Юпитер" и т.д.) — загружают предопределённые начальные условия.</li>
+          <li><strong>Пауза / Продолжить:</strong> Приостанавливает или возобновляет симуляцию.</li>
+          <li><strong>Перезапуск (иконка со стрелкой):</strong> Сбрасывает текущий пресет к его начальному состоянию.</li>
+          <li><strong>Кнопки параметров (слева внизу):</strong>
+            <ul>
+              <li><strong>Масса 1, 2, 3:</strong> Нажмите на иконку, чтобы выбрать одно из тел для редактирования его массы с помощью слайдера.</li>
+              <li><strong>Скорость (иконка с часами):</strong> Позволяет настроить скорость течения времени в симуляции.</li>
+              <li><strong>Смягчение (иконка с полукругом):</strong> Регулирует параметр смягчения (ε), который предотвращает "гравитационный коллапс", когда тела подходят слишком близко друг к другу.</li>
+            </ul>
+          </li>
+          <li><strong>Слайдер:</strong> Основной инструмент для изменения выбранного параметра. Просто перетаскивайте ползунок. Вы также можете <strong>нажать на текстовое значение над слайдером</strong>, чтобы ввести точное число с клавиатуры.</li>
+          <li><strong>Скачать / Загрузить сцену:</strong> Эти кнопки позволяют сохранить текущее состояние симуляции (массы, положения, скорости) в файл на вашем компьютере и позже загрузить его для продолжения экспериментов.</li>
+          <li><strong>Графики и аппроксимации:</strong> Ниже симуляции находятся раскрывающиеся секции, которые показывают графики скоростей и ускорений тел, а также выводят мгновенные формулы, аппроксимирующие их траектории. Лог этих формул можно скачать.</li>
+        </ul>
+
+        <h3>Описание пресетов</h3>
+        <ul>
+          <li><strong>Восьмёрка:</strong> Классическое устойчивое решение задачи трёх тел, где три тела с равными массами движутся по одной и той же траектории в форме восьмёрки.</li>
+          <li><strong>Солнце, Земля и Юпитер:</strong> Упрощённая модель нашей Солнечной системы. Показывает, как массивный Юпитер влияет на орбиту Земли и на центр масс системы.</li>
+          <li><strong>Точка Лагранжа L5:</strong> Демонстрирует одну из пяти точек стабильности в системе двух массивных тел (Солнце и Юпитер). Третье, менее массивное тело (астероид) может находиться в этой точке, двигаясь вместе с Юпитером.</li>
+          <li><strong>Кеплер-16:</strong> Модель реальной экзопланетной системы Kepler-16, состоящей из двух звёзд, вращающихся друг вокруг друга, и планеты, которая вращается вокруг обеих звёзд.</li>
+          <li><strong>Хаотический:</strong> Сценарий, который наглядно показывает "хаотичную" природу задачи. Небольшие изменения в начальных условиях могут привести к совершенно непредсказуемым и разным результатам.</li>
+        </ul>
+        <!-- ИЗМЕНЕНИЕ КОНЕЦ -->
+      </div>
     </div>
   </div>
 
   <p class="ThreeBodyProblem-debugOutput"></p>
 
-  <!-- Скрипты приложения -->
   <script src="script.js"></script>
   <script src="physics.js"></script>
   <script src="graphics.js"></script>
-
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <script src="simulation.js"></script>
   <script src="ui.js"></script>
 
-  <!-- Графики как в эталоне -->
   <script>
     (function() {
       window.chartManager = {};
@@ -249,7 +248,6 @@
       let velocityChart = null;
       let accelerationChart = null;
       let frameIndex = 0;
-
       function trimData(chart) {
         const d = chart.data;
         while (d.labels.length > MAX_POINTS) {
@@ -257,32 +255,24 @@
           chart.data.datasets.forEach(ds => ds.data.shift());
         }
       }
-
       function resetCharts() {
+        if (!chartsInited) return;
         frameIndex = 0;
-        if (velocityChart) {
-          velocityChart.data.labels = [];
-          velocityChart.data.datasets.forEach(ds => ds.data = []);
-          velocityChart.update('none');
-        }
-        if (accelerationChart) {
-          accelerationChart.data.labels = [];
-          accelerationChart.data.datasets.forEach(ds => ds.data = []);
-          accelerationChart.update('none');
-        }
+        velocityChart.data.labels = [];
+        velocityChart.data.datasets.forEach(dataset => { dataset.data = []; });
+        velocityChart.update('none');
+        accelerationChart.data.labels = [];
+        accelerationChart.data.datasets.forEach(dataset => { dataset.data = []; });
+        accelerationChart.update('none');
       }
       window.chartManager.reset = resetCharts;
-      window.chartManager.update = function(_) { /* no-op, обновляем в RAF */ };
-
       function initCharts() {
         if (chartsInited) return;
         const velCanvas = document.getElementById('velocityChart');
         const accCanvas = document.getElementById('accelerationChart');
         if (!velCanvas || !accCanvas || !window.Chart) return;
-
         const velCtx = velCanvas.getContext('2d');
         const accCtx = accCanvas.getContext('2d');
-
         velocityChart = new Chart(velCtx, {
           type: 'line',
           data: {
@@ -294,9 +284,7 @@
             ]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
+            responsive: true, maintainAspectRatio: false, animation: false,
             interaction: { mode: 'nearest', intersect: false },
             plugins: { legend: { display: true }, tooltip: { enabled: true } },
             scales: {
@@ -305,7 +293,6 @@
             }
           }
         });
-
         accelerationChart = new Chart(accCtx, {
           type: 'line',
           data: {
@@ -317,9 +304,7 @@
             ]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
+            responsive: true, maintainAspectRatio: false, animation: false,
             interaction: { mode: 'nearest', intersect: false },
             plugins: { legend: { display: true }, tooltip: { enabled: true } },
             scales: {
@@ -328,35 +313,25 @@
             }
           }
         });
-
         chartsInited = true;
-
-        document.getElementById('vel-details')?.addEventListener('toggle', () => {
-          setTimeout(() => velocityChart?.resize(), 0);
-        });
-        document.getElementById('eng-details')?.addEventListener('toggle', () => {
-          setTimeout(() => accelerationChart?.resize(), 0);
-        });
+        document.getElementById('vel-details')?.addEventListener('toggle', () => setTimeout(() => velocityChart?.resize(), 0));
+        document.getElementById('eng-details')?.addEventListener('toggle', () => setTimeout(() => accelerationChart?.resize(), 0));
         window.addEventListener('resize', () => {
           velocityChart?.resize();
           accelerationChart?.resize();
         });
       }
-
       function updateCharts() {
-        const isPaused = window.simulation && typeof simulation.isPaused === 'function' && simulation.isPaused();
-        const isStopped = window.physics && physics.initialConditions && physics.initialConditions.timeScaleFactor === 0;
-
-        if (isPaused || isStopped) {
+        if (window.simulation && typeof simulation.isPaused === 'function' && simulation.isPaused()) {
           requestAnimationFrame(updateCharts);
           return;
         }
-
         if (window.physics && typeof physics.getSpeeds === 'function' && typeof physics.getAccelerations === 'function') {
           if (!chartsInited) initCharts();
           if (chartsInited) {
             const speeds = physics.getSpeeds();
             const totalSpeed = speeds.reduce((sum, speed) => sum + (speed || 0), 0);
+            
             if (totalSpeed > 0) {
               const accelerations = physics.getAccelerations();
               frameIndex += 1;
@@ -371,8 +346,7 @@
 
               accelerationChart.data.labels.push(label);
               for (let i = 0; i < 3; i++) {
-                const a = accelerations[i];
-                const accMagnitude = a ? Math.hypot(a.ax || 0, a.ay || 0) : null;
+                const accMagnitude = accelerations[i] ? Math.sqrt(accelerations[i].ax**2 + accelerations[i].ay**2) : null;
                 accelerationChart.data.datasets[i].data.push(accMagnitude);
               }
               trimData(accelerationChart);
@@ -382,7 +356,6 @@
         }
         requestAnimationFrame(updateCharts);
       }
-
       window.addEventListener('load', () => {
         initCharts();
         requestAnimationFrame(updateCharts);
@@ -390,24 +363,5 @@
     })();
   </script>
 
-  <!-- WASM -->
-  <script src="physics_wasm.js"></script>
-  <script>
-    window.App = { uiReady: false, wasmReady: false };
-    function maybeStart() {
-      if (App.uiReady && App.wasmReady && window.simulation && typeof simulation.start === 'function') {
-        simulation.start();
-      }
-    }
-    window.addEventListener('load', function(){
-      App.uiReady = true;
-      maybeStart();
-    });
-    window.Module = window.Module || {};
-    Module.onRuntimeInitialized = function () {
-      App.wasmReady = true;
-      maybeStart();
-    };
-  </script>
 </body>
 </html>
