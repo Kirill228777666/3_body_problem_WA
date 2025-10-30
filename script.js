@@ -1,150 +1,413 @@
-(function(){
-  "use strict";
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Симулятор трёх тел</title>
 
-  // MathJax конфиг на случай переинициализации
-  window.MathJax = window.MathJax || {
-    tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
-    svg: { fontCache: 'global' }
-  };
+  <!-- Фавиконка-заглушка, чтобы не было 404 -->
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
 
-  /* ========= КАСТОМНЫЙ СЛАЙДЕР С PROГРАММНОЙ УСТАНОВКОЙ ЗНАЧЕНИЯ ========= */
-  function SickSlider(sliderElementSelector) {
-    var that = {
-      onSliderChange: null,
-      previousSliderValue: -42,
-      didRequestUpdateOnNextFrame: false,
-      valueNorm: 0 // [0..1]
+  <!-- Шрифты и базовые стили -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css"><!-- если файла нет, можно удалить эту строку -->
+
+  <!-- MathJax -->
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+      svg: { fontCache: 'global' }
     };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 
-    that.init = function(selector) {
-      that.slider = document.querySelector(selector);
-      if (!that.slider) throw new Error("SickSlider: .slider not found");
-      that.sliderHead = that.slider.querySelector(".SickSlider-head");
-      that.stripe = that.slider.querySelector(".SickSlider-stripe");
-      if (!that.sliderHead) throw new Error("SickSlider: .SickSlider-head not found");
+  <!-- Локальные стили -->
+  <style>
+    /* Кружки вместо картинок в пресетах FigureEight/Chaotic */
+    .is-circles-mode .ThreeBodyProblem-bodyImage { display: none !important; }
+    .ThreeBodyProblem-sun,
+    .ThreeBodyProblem-earth,
+    .ThreeBodyProblem-jupiter {
+      position: absolute;
+      left: 0; top: 0;
+      width: 60px; height: 60px;
+    }
+    .ThreeBodyProblem-bodyImage {
+      width: 100%;
+      height: 100%;
+      display: block;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+    .as-circle {
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0,0,0,0.35);
+    }
 
-      that.sliding = false;
+    /* Кружки-иконки на кнопках выбора тела — уменьшил размер (как в эталоне) */
+    .ThreeBodyProblem-leftBottomButton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: transparent;
+    }
+    .ThreeBodyProblem-leftBottomImage {
+      width: 44px;
+      height: 44px;
+      display: block;
+    }
+    .mass-circle {
+      display: inline-block;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      box-shadow: 0 0 6px rgba(0,0,0,0.35);
+      vertical-align: middle;
+    }
+    
+    /* Улучшенное переключение иконок масс */
+    .mass-icon-circle { display: none; }
+    .is-circles-mode .mass-icon-image { display: none; }
+    .is-circles-mode .mass-icon-circle { display: inline-block; }
 
-      // события
-      that.slider.addEventListener("mousedown", function(e) {
-        that.sliding = true;
-        that.updateOnPointer(e.clientX);
-        e.preventDefault();
-      });
-      document.addEventListener("mousemove", function(e) {
-        if (!that.sliding) return;
-        that.updateOnPointer(e.clientX);
-        e.preventDefault();
-      });
-      document.addEventListener("mouseup", function() {
-        that.sliding = false;
-      });
 
-      that.slider.addEventListener("touchstart", function(e) {
-        that.sliding = true;
-        var t = e.touches[0];
-        that.updateOnPointer(t.clientX);
-        e.preventDefault();
-      }, { passive: false });
-      document.addEventListener("touchmove", function(e) {
-        if (!that.sliding) return;
-        var t = e.touches[0];
-        that.updateOnPointer(t.clientX);
-        e.preventDefault();
-      }, { passive: false });
-      document.addEventListener("touchend", function() {
-        that.sliding = false;
-      });
+    /* Блок аппроксимаций — как в образце */
+    .approximation-display-style {
+      background-color: rgba(28, 37, 65, 0.7);
+      padding: 15px 20px;
+      margin: 10px auto 0 auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      max-width: 700px;
+      color: #f0f0f0;
+    }
+    .approximation-display-style h4 { margin: 0 0 15px; text-align: center; font-weight: 600; }
+    .approximation-display-style pre {
+      font-family: monospace; font-size: 1.1em; text-align: left; margin: 10px auto;
+      padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; white-space: pre-wrap;
+    }
+    #formula-text-0 { color: #ff8b22; }
+    #formula-text-1 { color: #6c81ff; }
+    #formula-text-2 { color: #4ccd7a; }
+  </style>
+</head>
+<body>
 
-      window.addEventListener("resize", that.relayout);
-      that.relayout();
+  <!-- Лоадер -->
+  <div id="loader-wrapper">
+    <div class="loader">
+      <div class="inner one"></div>
+      <div class="inner two"></div>
+      <div class="inner three"></div>
+    </div>
+    <div class="loader">
+      <div class="inner one"></div>
+      <div class="inner two"></div>
+      <div class="inner three"></div>
+    </div>
+  </div>
 
-      return that;
-    };
+  <h1>Симулятор трёх тел</h1>
+  <p id="ThreeBodyProblem-notSupportedMessage" class="ThreeBodyProblem-alert ThreeBodyProblem-isHiddenBlock">
+    Пожалуйста, используйте современный браузер для просмотра симуляции.
+  </p>
 
-    that.relayout = function(){
-      var rect = that.slider.getBoundingClientRect();
-      that.sliderLeft = rect.left + window.scrollX;
-      that.sliderWidth = rect.width;
-      // позиционируем головку по текущему значению
-      that.placeHeadByNorm();
-    };
+  <!-- Сцена -->
+  <div class="ThreeBodyProblem-container isFullScreenWide isUnselectable">
+    <div class="ThreeBodyProblem-sun">
+      <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/sun.png" class="ThreeBodyProblem-spin ThreeBodyProblem-bodyImage" alt="Солнце" />
+    </div>
+    <div class="ThreeBodyProblem-earth">
+      <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/earth.png" alt="Земля" class="ThreeBodyProblem-spin ThreeBodyProblem-bodyImage"/>
+    </div>
+    <div class="ThreeBodyProblem-jupiter">
+      <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/jupiter_juno.png" alt="Юпитер" class="ThreeBodyProblem-spin ThreeBodyProblem-bodyImage" />
+    </div>
+    <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/center_of_mass.png" alt="Центр масс" class="ThreeBodyProblem-centerOfMass" />
+    <canvas class="ThreeBodyProblem-canvas"></canvas>
 
-    that.updateOnPointer = function(clientX){
-      var x = clientX - that.sliderLeft;
-      var headWidth = that.sliderHead.getBoundingClientRect().width || 0;
-      var usable = Math.max(1, that.sliderWidth - headWidth);
-      var norm = (x - headWidth/2) / usable;
-      if (!isFinite(norm)) norm = 0;
-      if (norm < 0) norm = 0; if (norm > 1) norm = 1;
-      that.setNormalizedValue(norm, true); // silent=true (не дёргаем onSliderChange отсюда)
-      if (typeof that.onSliderChange === "function") that.onSliderChange(norm);
-    };
+    <div class="ThreeBodyProblem-hudContainer">
+      <div class="ThreeBodyProblem-hudContainerChild"></div>
 
-    that.placeHeadByNorm = function(){
-      var headWidth = that.sliderHead.getBoundingClientRect().width || 0;
-      var usable = Math.max(1, that.sliderWidth - headWidth);
-      var left = usable * that.valueNorm;
-      that.sliderHead.style.left = left + "px";
-    };
+      <div class="ThreeBodyProblem-leftBottomButtonCantainer">
+        <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass1Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 1">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_one_icon.png" alt="Масса 1" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
+          <span class="mass-circle mass-icon-circle" style="background:#ff8b22"></span>
+        </a>
+        <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass2Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 2">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_two_icon.png" alt="Масса 2" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
+          <span class="mass-circle mass-icon-circle" style="background:#6c81ff"></span>
+        </a>
+        <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass3Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 3">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_three_icon.png" alt="Масса 3" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
+          <span class="mass-circle mass-icon-circle" style="background:#4ccd7a"></span>
+        </a>
+        <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-speedButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Скорость">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/clock_icon.png" alt="Скорость" class="ThreeBodyProblem-leftBottomImage">
+        </a>
+        <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-softeningButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Смягчение">
+          <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Rya2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xOC41IDE4LjVhNi41IDYuNSAwIDEgMCAwLTEzIi8+PHBhdGggZD0iTTUuNSAxMmgxMyIvPjwvc3ZnPg==" alt="Смягчение" class="ThreeBodyProblem-leftBottomImage">
+        </a>
+        <a id="info-button" class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Информация">
+          <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Rya2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCI+PC9jaXJjbGU+PGxpbmUgeDE9IjEyIiB5MT0iMTYiIHgyPSIxMiIgeTI9IjEyIj48L2xpbmU+PGxpbmUgeDE9IjEyIiB5MT0iOCIgeDI9IjEyLjAxIiB5Mj0iOCI+PC9saW5lPjwvc3ZnPg==" alt="Информация" class="ThreeBodyProblem-leftBottomImage">
+        </a>
+      </div>
 
-    // публичный метод для UI: установить нормализованное значение [0..1]
-    that.setNormalizedValue = function(norm, silent){
-      if (!isFinite(norm)) norm = 0;
-      if (norm < 0) norm = 0; if (norm > 1) norm = 1;
-      that.valueNorm = norm;
-      that.placeHeadByNorm();
-      if (!silent && typeof that.onSliderChange === "function") {
-        that.onSliderChange(norm);
+      <div class="ThreeBodyProblem-rightBottomButtonContainer">
+        <button class="ThreeBodyProblem-pause ThreeBodyProblem-leftBottomButton" aria-pressed="false" title="Пауза / Продолжить">
+          Пауза
+        </button>
+        <a class="ThreeBodyProblem-reload ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Перезапуск">
+          <img src="https://evgenii.com/image/blog/2016-09-17-ridiculous-strawberry-picking/reload_icon.png" alt="Перезапуск" class="ThreeBodyProblem-reloadIcon">
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Панель управления -->
+  <div class="ThreeBodyProblem-controlsArea">
+    <div class="ThreeBodyProblem-isTextCentered ThreeBodyProblem-hasTopMarginSmall ThreeBodyProblem-hasNegativeBottomMarginNormal isUnselectable">
+      <span class="ThreeBodyProblem-sliderLabel"></span>
+    </div>
+    <div class="SickSlider ThreeBodyProblem-slider isUnselectable">
+      <div class="SickSlider-stripe"></div>
+      <div class="SickSlider-head"></div>
+    </div>
+    <div class="ThreeBodyProblem-isTextCentered">
+      <button class="ThreeBodyProblem-preset ThreeBodyProblem-button ThreeBodyProblem-button--isSelected" data-name="FigureEight">Восьмёрка</button>
+      <button class="ThreeBodyProblem-preset ThreeBodyProblem-button" data-name="SunEarthJupiter">Солнце, Земля и Юпитер</button>
+      <button class="ThreeBodyProblem-preset ThreeBodyProblem-button" data-name="LagrangePoint5">Точка Лагранжа L5</button>
+      <button class="ThreeBodyProblem-preset ThreeBodyProblem-button" data-name="Kepler16">Кеплер-16</button>
+      <button class="ThreeBodyProblem-preset ThreeBodyProblem-button" data-name="Chaotic">Хаотический</button>
+      <button class="ThreeBodyProblem-button" id="download-scene-button">Скачать сцену</button>
+      <button class="ThreeBodyProblem-button" id="upload-scene-button">Загрузить сцену</button>
+      <input type="file" id="scene-uploader" accept="application/json, .json" style="display: none;" />
+    </div>
+  </div>
+
+  <!-- Графики Chart.js -->
+  <div id="charts-container" style="max-width: 1100px; margin: 20px auto;">
+    <details id="vel-details" style="margin-bottom: 10px;">
+      <summary style="cursor:pointer; font-weight:600;">График скоростей (раскрыть/свернуть)</summary>
+      <div style="width: 100%; height: 360px; margin-top: 10px;">
+        <canvas id="velocityChart" style="width:100%; height:100%;"></canvas>
+      </div>
+    </details>
+    <details id="eng-details" style="margin-bottom: 10px;">
+      <summary style="cursor:pointer; font-weight:600;">График ускорений (раскрыть/свернуть)</summary>
+      <div style="width: 100%; height: 360px; margin-top: 10px;">
+        <canvas id="accelerationChart" style="width:100%; height:100%;"></canvas>
+      </div>
+    </details>
+    <details id="approx-details">
+      <summary style="cursor:pointer; font-weight:600;">Мгновенные аппроксимации траекторий (раскрыть/свернуть)</summary>
+      <div id="approximation-display" class="approximation-display-style">
+        <h4>Мгновенные аппроксимации траекторий</h4>
+        <div style="text-align: center; margin-bottom: 15px;">
+          <button class="ThreeBodyProblem-button" id="download-log-button">Скачать лог формул</button>
+        </div>
+        <pre id="formula-text-0"></pre>
+        <pre id="formula-text-1"></pre>
+        <pre id="formula-text-2"></pre>
+      </div>
+    </details>
+  </div>
+
+  <!-- Модалка -->
+  <div id="info-modal" class="modal-overlay is-hidden">
+    <div class="modal-content">
+      <button class="modal-close-button" title="Закрыть">&times;</button>
+      <div class="instruction-container"></div>
+    </div>
+  </div>
+
+  <p class="ThreeBodyProblem-debugOutput"></p>
+
+  <!-- Скрипты приложения -->
+  <script src="script.js"></script>
+  <script src="physics.js"></script>
+  <script src="graphics.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script src="simulation.js"></script>
+  <script src="ui.js"></script>
+
+  <!-- Графики как в эталоне -->
+  <script>
+    (function() {
+      window.chartManager = {};
+      const MAX_POINTS = 2000;
+      let chartsInited = false;
+      let velocityChart = null;
+      let accelerationChart = null;
+      let frameIndex = 0;
+
+      function trimData(chart) {
+        const d = chart.data;
+        while (d.labels.length > MAX_POINTS) {
+          d.labels.shift();
+          chart.data.datasets.forEach(ds => ds.data.shift());
+        }
       }
-    };
 
-    return that.init(sliderElementSelector);
-  }
+      function resetCharts() {
+        frameIndex = 0;
+        if (velocityChart) {
+          velocityChart.data.labels = [];
+          velocityChart.data.datasets.forEach(ds => ds.data = []);
+          velocityChart.update('none');
+        }
+        if (accelerationChart) {
+          accelerationChart.data.labels = [];
+          accelerationChart.data.datasets.forEach(ds => ds.data = []);
+          accelerationChart.update('none');
+        }
+      }
+      window.chartManager.reset = resetCharts;
+      window.chartManager.update = function(_) { /* no-op, обновляем в RAF */ };
 
-  /* ========= ВСПОМОГАТЕЛЬНОЕ: debug ========= */
-  function debug(text){
-    var output = document.querySelector(".ThreeBodyProblem-debugOutput");
-    if (output) output.textContent = text;
-    else console.log(text);
-  }
+      function initCharts() {
+        if (chartsInited) return;
+        const velCanvas = document.getElementById('velocityChart');
+        const accCanvas = document.getElementById('accelerationChart');
+        if (!velCanvas || !accCanvas || !window.Chart) return;
 
-  /* ========= ВСПОМОГАТЕЛЬНОЕ: RK4 (на всякий случай) ========= */
-  var rungeKutta = (function(){
-    function calculate(h, u, derivative) {
-      // u — массив состояния, derivative — функция, возвращающая du (массив той же длины)
-      var n = u.length;
-      var u0 = u.slice();
-      var k1 = derivative(); // du/dt в начале
-      var tmp = new Array(n);
+        const velCtx = velCanvas.getContext('2d');
+        const accCtx = accCanvas.getContext('2d');
 
-      // u + h/2 * k1
-      for (var i=0;i<n;i++) tmp[i] = u0[i] + (h/2) * k1[i];
-      var save = u.slice();
-      for (var i2=0;i2<n;i2++) u[i2] = tmp[i2];
-      var k2 = derivative();
+        velocityChart = new Chart(velCtx, {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              { label: 'Скорость тела 1', data: [], borderColor: '#ff8b22', pointRadius: 0, tension: 0.1 },
+              { label: 'Скорость тела 2', data: [], borderColor: '#6c81ff', pointRadius: 0, tension: 0.1 },
+              { label: 'Скорость тела 3', data: [], borderColor: '#4ccd7a', pointRadius: 0, tension: 0.1 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: { legend: { display: true }, tooltip: { enabled: true } },
+            scales: {
+              x: { title: { display: true, text: 'Шаг симуляции' }, ticks: { maxTicksLimit: 8 } },
+              y: { title: { display: true, text: 'Скорость (|v|)' }, ticks: { maxTicksLimit: 8 } }
+            }
+          }
+        });
 
-      // u + h/2 * k2
-      for (var j=0;j<n;j++) tmp[j] = u0[j] + (h/2) * k2[j];
-      for (var i3=0;i3<n;i3++) u[i3] = tmp[i3];
-      var k3 = derivative();
+        accelerationChart = new Chart(accCtx, {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [
+              { label: 'Ускорение тела 1', data: [], borderColor: '#ff8b22', pointRadius: 0, tension: 0.1 },
+              { label: 'Ускорение тела 2', data: [], borderColor: '#6c81ff', pointRadius: 0, tension: 0.1 },
+              { label: 'Ускорение тела 3', data: [], borderColor: '#4ccd7a', pointRadius: 0, tension: 0.1 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: { legend: { display: true }, tooltip: { enabled: true } },
+            scales: {
+              x: { title: { display: true, text: 'Шаг симуляции' }, ticks: { maxTicksLimit: 8 } },
+              y: { title: { display: true, text: 'Ускорение (|a|)' }, ticks: { maxTicksLimit: 8 } }
+            }
+          }
+        });
 
-      // u + h * k3
-      for (var j2=0;j2<n;j2++) tmp[j2] = u0[j2] + h * k3[j2];
-      for (var i4=0;i4<n;i4++) u[i4] = tmp[i4];
-      var k4 = derivative();
+        chartsInited = true;
 
-      // u = u0 + h/6 * (k1 + 2k2 + 2k3 + k4)
-      for (var m=0;m<n;m++) {
-        u[m] = u0[m] + (h/6) * (k1[m] + 2*k2[m] + 2*k3[m] + k4[m]);
+        document.getElementById('vel-details')?.addEventListener('toggle', () => {
+          setTimeout(() => velocityChart?.resize(), 0);
+        });
+        document.getElementById('eng-details')?.addEventListener('toggle', () => {
+          setTimeout(() => accelerationChart?.resize(), 0);
+        });
+        window.addEventListener('resize', () => {
+          velocityChart?.resize();
+          accelerationChart?.resize();
+        });
+      }
+
+      function updateCharts() {
+        const isPaused = window.simulation && typeof simulation.isPaused === 'function' && simulation.isPaused();
+        const isStopped = window.physics && physics.initialConditions && physics.initialConditions.timeScaleFactor === 0;
+
+        if (isPaused || isStopped) {
+          requestAnimationFrame(updateCharts);
+          return;
+        }
+
+        if (window.physics && typeof physics.getSpeeds === 'function' && typeof physics.getAccelerations === 'function') {
+          if (!chartsInited) initCharts();
+          if (chartsInited) {
+            const speeds = physics.getSpeeds();
+            const totalSpeed = speeds.reduce((sum, speed) => sum + (speed || 0), 0);
+            if (totalSpeed > 0) {
+              const accelerations = physics.getAccelerations();
+              frameIndex += 1;
+              const label = String(frameIndex);
+
+              velocityChart.data.labels.push(label);
+              for (let i = 0; i < 3; i++) {
+                velocityChart.data.datasets[i].data.push(speeds[i] ?? null);
+              }
+              trimData(velocityChart);
+              velocityChart.update('none');
+
+              accelerationChart.data.labels.push(label);
+              for (let i = 0; i < 3; i++) {
+                const a = accelerations[i];
+                const accMagnitude = a ? Math.hypot(a.ax || 0, a.ay || 0) : null;
+                accelerationChart.data.datasets[i].data.push(accMagnitude);
+              }
+              trimData(accelerationChart);
+              accelerationChart.update('none');
+            }
+          }
+        }
+        requestAnimationFrame(updateCharts);
+      }
+
+      window.addEventListener('load', () => {
+        initCharts();
+        requestAnimationFrame(updateCharts);
+      });
+    })();
+  </script>
+
+  <!-- WASM -->
+  <script src="physics_wasm.js"></script>
+  <script>
+    window.App = { uiReady: false, wasmReady: false };
+    function maybeStart() {
+      if (App.uiReady && App.wasmReady && window.simulation && typeof simulation.start === 'function') {
+        simulation.start();
       }
     }
-    return { calculate: calculate };
-  })();
-
-  // Экспортируем в глобал, как и раньше
-  window.SickSlider = SickSlider;
-  window.debug = debug;
-  window.rungeKutta = rungeKutta;
-
-})();
+    window.addEventListener('load', function(){
+      App.uiReady = true;
+      maybeStart();
+    });
+    window.Module = window.Module || {};
+    Module.onRuntimeInitialized = function () {
+      App.wasmReady = true;
+      maybeStart();
+    };
+  </script>
+</body>
+</html>
