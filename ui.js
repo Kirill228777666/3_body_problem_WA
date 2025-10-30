@@ -64,14 +64,22 @@ var simulations = (function(){
     },
     "LagrangePoint5": {
       name: "LagrangePoint5",
-      masses: [1.98855e30, 5.972e24, 1.898e28],
-      densities: [0.001,0.0001,0.0001],
+      masses: [1.98855e30, 1.898e27, 1e21], // Солнце, Юпитер, Астероид
+      densities: [1410, 1330, 2000],
       paleOrbitalPaths: true,
       massSlider: { min: 3e10, max: 3e31, power: 5 },
-      timeScaleFactor: 3600*24*30,
-      timeScaleFactorSlider: { min: 0, max: 3600*24*365*1500, power: 5 },
-      positions: [{r:0,theta:0},{r:7.5e11,theta:-Math.PI/3 - Math.PI/10},{r:7.78e11,theta:0}],
-      velocities: [{r:13.3e3,theta:Math.PI/6 - Math.PI/10},{r:0,theta:0},{r:13.1e3,theta:Math.PI/2}]
+      timeScaleFactor: 3600*24*365*2, // 2 года в секунду
+      timeScaleFactorSlider: { min: 0, max: 3600*24*365*20, power: 3 },
+      positions: [
+        {r:0,theta:0}, // Солнце
+        {r:7.78e11,theta:0}, // Юпитер
+        {r:7.78e11,theta:-Math.PI/3} // Астероид в L5
+      ],
+      velocities: [
+        {r:0,theta:0}, // Солнце (система будет отцентрована по барицентру)
+        {r:13.1e3,theta:Math.PI/2}, // Орбитальная скорость Юпитера
+        {r:13.1e3,theta: -Math.PI/3 + Math.PI/2} // Орбитальная скорость астероида
+      ]
     },
     "Kepler16": {
       name: "Kepler16",
@@ -210,20 +218,16 @@ var logManager = (function() {
 
 var userInput = (function(){
   var sliderLabelElement = document.querySelector(".ThreeBodyProblem-sliderLabel");
-  var mass1Button = document.querySelector(".ThreeBodyProblem-mass1Button");
-  var mass2Button = document.querySelector(".ThreeBodyProblem-mass2Button");
-  var mass3Button = document.querySelector(".ThreeBodyProblem-mass3Button");
-  var speedButton = document.querySelector(".ThreeBodyProblem-speedButton");
-  var softeningButton = document.querySelector(".ThreeBodyProblem-softeningButton");
   var sliderElement = document.querySelector(".ThreeBodyProblem-slider");
-
+  var sceneContainer = document.querySelector(".ThreeBodyProblem-container");
   var currentSlider="speed", currentMassSliderIndex=0, currentModel;
-
   var downloadSceneButton = document.getElementById('download-scene-button');
   var uploadSceneButton = document.getElementById('upload-scene-button');
   var sceneUploader = document.getElementById('scene-uploader');
   var downloadLogButton = document.getElementById('download-log-button');
-
+  var infoModal = document.getElementById('info-modal');
+  var infoButton = document.getElementById('info-button');
+  var closeModalButton = document.querySelector('.modal-close-button');
   var sliderInst = null;
 
   function getSofteningSliderSettings(isDimensionless){
@@ -295,10 +299,8 @@ var userInput = (function(){
     var t = (value - sliderSettings.min) / (sliderSettings.max - sliderSettings.min);
     if (!isFinite(t)) t = 0;
     if (t < 0) t = 0; if (t > 1) t = 1;
-
     var p = sliderSettings.power;
     if (!p || p === 1) return t;
-
     if (p % 2 === 0) {
       return Math.pow(t, 1/p);
     } else {
@@ -325,10 +327,8 @@ var userInput = (function(){
       }
       sliderValue = Math.max(0, Math.min(1, sliderValue));
     }
-
     var newValue = sliderSettings.min + (sliderSettings.max - sliderSettings.min) * sliderValue;
     var sliderText;
-
     if (currentSlider === "mass") {
       newValue = Math.round(newValue*10000)/10000;
       physics.initialConditions.masses[currentMassSliderIndex] = newValue;
@@ -360,10 +360,8 @@ var userInput = (function(){
     cssHelper.removeClass(sliderElement,"ThreeBodyProblem-sliderSun");
     cssHelper.removeClass(sliderElement,"ThreeBodyProblem-sliderEarth");
     cssHelper.removeClass(sliderElement,"ThreeBodyProblem-sliderJupiter");
-
     var val = getCurrentSimulationValue();
     var txt;
-
     if (currentSlider==="mass"){
       txt = formatMassForSlider(val);
       if (currentMassSliderIndex===0) cssHelper.addClass(sliderElement,"ThreeBodyProblem-sliderSun");
@@ -381,28 +379,11 @@ var userInput = (function(){
     syncSliderHeadToValue();
   }
 
-  function setMassButtonCircle(btn, color) {
-    if (!btn) return;
-    btn.innerHTML = '<span class="mass-circle" style="background:'+color+'"></span>';
-  }
-  function setMassButtonIcon(btn, which) {
-    if (!btn) return;
-    var src =
-      which === 0 ? "https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_one_icon.png" :
-      which === 1 ? "https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_two_icon.png" :
-                    "https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_three_icon.png";
-    btn.innerHTML = '<img src="'+src+'" class="ThreeBodyProblem-leftBottomImage" alt="Масса '+(which+1)+'">';
-  }
   function updateMassButtonsAppearance(useCircles){
-    var btns = [mass1Button, mass2Button, mass3Button];
-    var titles = ['Красное тело','Синее тело','Зелёное тело'];
-    var colors = ['#ff8b22','#6c81ff','#4ccd7a'];
-    for (var i=0;i<btns.length;i++){
-      var btn = btns[i];
-      if (!btn) continue;
-      btn.title = titles[i];
-      if (useCircles) setMassButtonCircle(btn, colors[i]);
-      else setMassButtonIcon(btn, i);
+    if (useCircles) {
+      cssHelper.addClass(sceneContainer, 'is-circles-mode');
+    } else {
+      cssHelper.removeClass(sceneContainer, 'is-circles-mode');
     }
     graphics.setCircleMode(!!useCircles);
   }
@@ -410,18 +391,14 @@ var userInput = (function(){
   function didChangeModel(model){
     currentModel = model;
     physics.changeInitialConditions(currentModel);
-
     var presetEls = document.querySelectorAll(".ThreeBodyProblem-preset");
     if (model.name === "Custom") {
       for (var i=0; i<presetEls.length; i++) cssHelper.removeClass(presetEls[i],'ThreeBodyProblem-button--isSelected');
     }
-
     var useCircles = (model.name==="FigureEight" || model.name==="Chaotic");
     updateMassButtonsAppearance(useCircles);
-
     didClickRestart();
-
-    if (currentSlider !== "speed") currentSlider = "speed";
+    currentSlider = "speed";
     resetSlider();
   }
 
@@ -436,21 +413,9 @@ var userInput = (function(){
     return false;
   }
 
-  function didClickMass(i){
-    currentSlider="mass"; currentMassSliderIndex=i;
-    resetSlider();
-    return false;
-  }
-  function didClickSpeed(){
-    currentSlider="speed";
-    resetSlider();
-    return false;
-  }
-  function didClickSoftening(){
-    currentSlider="softening";
-    resetSlider();
-    return false;
-  }
+  function didClickMass(i){ currentSlider="mass"; currentMassSliderIndex=i; resetSlider(); return false; }
+  function didClickSpeed(){ currentSlider="speed"; resetSlider(); return false; }
+  function didClickSoftening(){ currentSlider="softening"; resetSlider(); return false; }
 
   function didClickDownloadScene() {
     var sceneData = {
@@ -462,11 +427,9 @@ var userInput = (function(){
       timeScaleFactor: physics.initialConditions.timeScaleFactor,
       softeningParameterSquared: physics.initialConditions.softeningParameterSquared
     };
-
     var jsonString = JSON.stringify(sceneData, null, 2);
     var blob = new Blob([jsonString], { type: "application/json" });
     var url = URL.createObjectURL(blob);
-
     var a = document.createElement('a');
     a.href = url;
     a.download = 'three-body-scene.json';
@@ -487,8 +450,7 @@ var userInput = (function(){
       try {
         var scene = JSON.parse(e.target.result);
         if (!scene || !scene.masses || !scene.positions || !scene.velocities) {
-          alert("Неверный файл сцены.");
-          return;
+          alert("Неверный файл сцены."); return;
         }
         scene.name = scene.name || "Custom";
         simulations.content.didChangeModel(scene);
@@ -497,19 +459,69 @@ var userInput = (function(){
     reader.readAsText(file);
   }
 
+  function populateInfoModal() {
+    var container = document.querySelector('.instruction-container');
+    if (!container) return;
+    container.innerHTML = `
+      <h2>Руководство по симулятору</h2>
+      <p>Этот симулятор моделирует движение трёх тел под действием взаимного гравитационного притяжения, используя для расчётов WebAssembly-модуль на C++.</p>
+      
+      <h3>Основное управление</h3>
+      <ul>
+        <li><b>Пауза / Продолжить:</b> Приостанавливает или возобновляет симуляцию.</li>
+        <li><b>Перезапуск:</b> Сбрасывает текущий пресет к его начальным параметрам.</li>
+        <li><b>Слайдер:</b> Центральный элемент управления. Его функция меняется в зависимости от выбранной ниже кнопки (масса, скорость или смягчение).</li>
+      </ul>
+
+      <h3>Параметры симуляции (кнопки слева)</h3>
+      <ul>
+        <li><b>Кнопки масс:</b> Нажмите на иконку тела (планеты или цветного кружка), чтобы выбрать его. После этого слайдер будет регулировать массу этого тела.</li>
+        <li><b>Скорость:</b> Нажмите на иконку часов, чтобы слайдер управлял скоростью течения времени в симуляции.</li>
+        <li><b>Смягчение (\\(\\epsilon\\)):</b> Это небольшой параметр, который предотвращает "взрыв" симуляции, когда тела подходят слишком близко друг к другу. Он сглаживает силу гравитации на малых расстояниях, избегая деления на ноль.</li>
+        <li><b>Информация:</b> Открывает это окно.</li>
+      </ul>
+
+      <h3>Пресеты</h3>
+      <ul>
+        <li><b>Восьмёрка:</b> Классическое, периодическое решение задачи трёх тел, где три тела с равными массами движутся по стабильной траектории в форме восьмёрки.</li>
+        <li><b>Солнце, Земля и Юпитер:</b> Упрощённая модель нашей Солнечной системы. Показывает, как массивный Юпитер влияет на орбиту Земли и барицентр системы.</li>
+        <li><b>Точка Лагранжа L5:</b> Демонстрация одной из пяти точек стабильности в системе двух массивных тел (Солнце-Юпитер). Третье, малое тело (астероид) может оставаться в этой точке почти неподвижно относительно вращающейся системы.</li>
+        <li><b>Кеплер-16:</b> Модель реальной экзопланетной системы, где планета вращается сразу вокруг двух звёзд (является спутником двойной звезды).</li>
+        <li><b>Хаотический:</b> Пример нестабильной системы, иллюстрирующий главную сложность задачи трёх тел: малейшие изменения в начальных условиях приводят к совершенно непредсказуемым траекториям.</li>
+      </ul>
+      
+      <h3>Дополнительные возможности</h3>
+      <ul>
+        <li><b>Скачать / Загрузить сцену:</b> Вы можете сохранить текущее состояние симуляции (массы, положения, скорости) в файл и загрузить его позже, чтобы продолжить эксперименты.</li>
+        <li><b>Графики и аппроксимации:</b> Ниже расположены раскрывающиеся блоки, которые в реальном времени показывают графики скоростей и ускорений тел, а также мгновенные математические формулы, аппроксимирующие их движение.</li>
+      </ul>
+    `;
+    if (window.MathJax && typeof window.MathJax.typeset === 'function') {
+      window.MathJax.typeset([container]);
+    }
+  }
+
+  function handleModal() {
+    function openModal() { if (infoModal) infoModal.classList.remove('is-hidden'); }
+    function closeModal() { if (infoModal) infoModal.classList.add('is-hidden'); }
+    if (infoButton) infoButton.addEventListener('click', function(e) { e.preventDefault(); openModal(); });
+    if (closeModalButton) closeModalButton.addEventListener('click', closeModal);
+    if (infoModal) infoModal.addEventListener('click', function(e) { if (e.target === infoModal) closeModal(); });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !infoModal.classList.contains('is-hidden')) closeModal();
+    });
+  }
+
   function attachEvents(){
     sliderInst = new SickSlider(".ThreeBodyProblem-slider");
     sliderInst.onSliderChange = didUpdateSlider;
-
     var el;
     el = document.querySelector(".ThreeBodyProblem-mass1Button"); if (el) el.onclick = function(e){ e.preventDefault(); return didClickMass(0); };
     el = document.querySelector(".ThreeBodyProblem-mass2Button"); if (el) el.onclick = function(e){ e.preventDefault(); return didClickMass(1); };
     el = document.querySelector(".ThreeBodyProblem-mass3Button"); if (el) el.onclick = function(e){ e.preventDefault(); return didClickMass(2); };
     el = document.querySelector(".ThreeBodyProblem-speedButton"); if (el) el.onclick = function(e){ e.preventDefault(); return didClickSpeed(); };
     el = document.querySelector(".ThreeBodyProblem-softeningButton"); if (el) el.onclick = function(e){ e.preventDefault(); return didClickSoftening(); };
-
     el = document.querySelector(".ThreeBodyProblem-reload"); if (el) el.onclick = function(e){ e.preventDefault(); return didClickRestart(); };
-
     var pauseBtn = document.querySelector('.ThreeBodyProblem-pause');
     if (pauseBtn) {
       pauseBtn.addEventListener('click', function(e) {
@@ -525,21 +537,17 @@ var userInput = (function(){
         }
       }, { passive: false });
     }
-
-    var downloadSceneButton = document.getElementById('download-scene-button');
-    var uploadSceneButton = document.getElementById('upload-scene-button');
-    var downloadLogButton = document.getElementById('download-log-button');
-    var uploader = document.getElementById('scene-uploader');
-
     if (downloadSceneButton) downloadSceneButton.onclick = function(e){ e.preventDefault(); return didClickDownloadScene(); };
     if (uploadSceneButton) uploadSceneButton.onclick = function(e){ e.preventDefault(); return didClickUploadScene(); };
-    if (uploader) uploader.addEventListener('change', handleFileUpload);
+    if (sceneUploader) sceneUploader.addEventListener('change', handleFileUpload);
     if (downloadLogButton) downloadLogButton.onclick = function(e){ e.preventDefault(); return logManager.download(); };
+    
+    populateInfoModal();
+    handleModal();
 
     var defaultModel = simulations.init();
     simulations.content.didChangeModel = didChangeModel;
     didChangeModel(defaultModel);
-
     syncSliderHeadToValue();
   }
 
