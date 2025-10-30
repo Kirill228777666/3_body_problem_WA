@@ -64,12 +64,18 @@
     }
     .mass-circle {
       display: inline-block;
-      width: 32px;
-      height: 32px;
+      width: 26px;
+      height: 26px;
       border-radius: 50%;
       box-shadow: 0 0 6px rgba(0,0,0,0.35);
       vertical-align: middle;
     }
+    
+    /* Улучшенное переключение иконок масс */
+    .mass-icon-circle { display: none; }
+    .is-circles-mode .mass-icon-image { display: none; }
+    .is-circles-mode .mass-icon-circle { display: inline-block; }
+
 
     /* Блок аппроксимаций — как в образце */
     .approximation-display-style {
@@ -131,13 +137,16 @@
 
       <div class="ThreeBodyProblem-leftBottomButtonCantainer">
         <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass1Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 1">
-          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_one_icon.png" alt="Масса 1" class="ThreeBodyProblem-leftBottomImage">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_one_icon.png" alt="Масса 1" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
+          <span class="mass-circle mass-icon-circle" style="background:#ff8b22"></span>
         </a>
         <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass2Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 2">
-          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_two_icon.png" alt="Масса 2" class="ThreeBodyProblem-leftBottomImage">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_two_icon.png" alt="Масса 2" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
+          <span class="mass-circle mass-icon-circle" style="background:#6c81ff"></span>
         </a>
         <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-mass3Button ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Масса 3">
-          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_three_icon.png" alt="Масса 3" class="ThreeBodyProblem-leftBottomImage">
+          <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/mass_three_icon.png" alt="Масса 3" class="ThreeBodyProblem-leftBottomImage mass-icon-image">
+          <span class="mass-circle mass-icon-circle" style="background:#4ccd7a"></span>
         </a>
         <a class="ThreeBodyProblem-leftBottomButton ThreeBodyProblem-speedButton ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Скорость">
           <img src="https://evgenii.com/image/blog/2018-09-27-three-body-problem-simulator/clock_icon.png" alt="Скорость" class="ThreeBodyProblem-leftBottomImage">
@@ -152,8 +161,7 @@
 
       <div class="ThreeBodyProblem-rightBottomButtonContainer">
         <button class="ThreeBodyProblem-pause ThreeBodyProblem-leftBottomButton" aria-pressed="false" title="Пауза / Продолжить">
-          <svg id="pause-icon" xmlns="http://www.w.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-          <svg id="play-icon" xmlns="http://www.w.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display: none; margin-left: 2px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          Пауза
         </button>
         <a class="ThreeBodyProblem-reload ThreeBodyProblem-doesChangeOpacityOnHover" href="#" title="Перезапуск">
           <img src="https://evgenii.com/image/blog/2016-09-17-ridiculous-strawberry-picking/reload_icon.png" alt="Перезапуск" class="ThreeBodyProblem-reloadIcon">
@@ -165,7 +173,7 @@
   <!-- Панель управления -->
   <div class="ThreeBodyProblem-controlsArea">
     <div class="ThreeBodyProblem-isTextCentered ThreeBodyProblem-hasTopMarginSmall ThreeBodyProblem-hasNegativeBottomMarginNormal isUnselectable">
-      <span class="ThreeBodyProblem-sliderLabel">0.01</span>
+      <span class="ThreeBodyProblem-sliderLabel"></span>
     </div>
     <div class="SickSlider ThreeBodyProblem-slider isUnselectable">
       <div class="SickSlider-stripe"></div>
