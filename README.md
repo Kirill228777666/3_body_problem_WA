@@ -1,38 +1,42 @@
-# Three-Body Problem Web Simulator (C++ → WebAssembly)
+# Three-Body Problem Simulator
 
-Interactive, high‑performance browser simulation of the classic three‑body problem.  
-The physics core is written in C++ and compiled to WebAssembly (WASM) via Emscripten; the UI is vanilla JavaScript.
+A web simulator of the classic three-body problem with interactive visualization and presets.  
+The physics core is now implemented in **C++ + WebAssembly (WASM)** for significantly faster computation.
 
-## Quick Start
+## 🚀 Features
+- Switchable presets: Figure Eight, Sun–Earth–Jupiter, Lagrange Point L5, Kepler-16, Chaotic
+- Controls: body masses, simulation speed, softening parameter ε
+- Pause/resume, restart, load/save scene
+- Charts of velocities and accelerations, log of local approximations
 
-> You only need a **static web server** (no backend).
+## 📂 Structure (all files in a single folder)
+- `index.html` — main app page; includes scripts and styles.
+- `style.css` — UI and canvas styles.
+- `graphics.js` — rendering of bodies, trajectories, and scene scaling.
+- `physics.js` — system state, parameters, WASM calls; JS fallback integrator.
+- `simulation.js` — main simulation loop and visualization/chart updates.
+- `ui.js` — presets, sliders, UI event handlers, scene import/export.
+- `script.js` — utilities, including RK4 in JS as a fallback.
+- `physics_wasm.cpp` — C++ core (RK4) for WebAssembly compilation.
+- `physics_wasm.js` — Emscripten glue code for loading the module.
+- `physics_wasm.wasm` — WebAssembly binary loaded by `physics_wasm.js`.
+- `README.md` — this file with instructions.
 
-1. **Clone or download** this project to your machine.
-2. **Start a local server** from the project folder:
-   ```bash
-   # Option A: Python 3
-   python -m http.server 8000
+## 🔧 WebAssembly Build
 
-   # Option B: Node.js (if installed)
-   npx http-server . -p 8000
-   ```
-3. **Open** your browser at **http://localhost:8000**.
+1) Install Emscripten:
+```bash
+# macOS/Linux:
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
 
-That’s it — the scene, controls, and charts should load in the browser.
-
-## Requirements
-
-- Modern browser (Chrome, Firefox, Safari, Edge)
-- Any simple static server (e.g., Python 3 or Node’s http-server)
-
-## Project Structure (high level)
-
-- `index.html` — app shell and UI
-- `main.js`, `ui.js` — initialization and controls
-- `physics.wasm`, `physics.js` — C++ core compiled to WASM (via Emscripten)
-- `assets/` — styles, icons, presets, etc.
-
-## Notes
-
-- Serve the files over HTTP/HTTPS. Opening via **file://** will not load WASM.
-- If you rebuilt `physics.wasm`, clear the browser cache or hard‑reload.
+# Windows PowerShell:
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+emsdk install latest
+emsdk activate latest
+emsdk_env.ps1
+```
