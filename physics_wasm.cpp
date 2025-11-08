@@ -10,35 +10,32 @@
 // Вычисление производной состояния (скоростей и ускорений).
 // state: [x0,y0,vx0,vy0, x1,y1,vx1,vy1, ...]
 // deriv: такого же размера, на выходе: [vx0,vy0,ax0,ay0, ...]
+
 static void computeDerivative(const double* state, double* deriv,
                               int bodies, const double* masses,
                               bool dimensionless, double softeningSq) {
-    const double G = dimensionless ? 1.0 : 6.67408e-11; // гравитационная постоянная
+    const double G = dimensionless ? 1.0 : 6.67408e-11;
 
     for (int i = 0; i < bodies; ++i) {
         const int idx = i * 4;
         // d(x,y)/dt = (vx, vy)
         deriv[idx]     = state[idx + 2];
         deriv[idx + 1] = state[idx + 3];
-
         double ax = 0.0;
         double ay = 0.0;
-
         // сумма ускорений от всех остальных тел
         for (int j = 0; j < bodies; ++j) {
             if (i == j) continue;
             const int jdx = j * 4;
             const double dx = state[jdx]     - state[idx];
             const double dy = state[jdx + 1] - state[idx + 1];
-
-            // Смягчённое расстояние
             const double r2 = dx * dx + dy * dy + softeningSq;
-            if (r2 == 0.0) continue;
-
+            if (r2 == 0.0)
+                continue;
             // r^3 = (r^2) * sqrt(r^2)
             const double r3 = r2 * std::sqrt(r2);
-            if (r3 == 0.0) continue;
-
+            if (r3 == 0.0)
+                continue;
             const double factor = G * masses[j] / r3;
             ax += factor * dx;
             ay += factor * dy;
@@ -64,27 +61,21 @@ void integrate(double timestep, double* state, int bodies,
     std::vector<double> y_temp(dim);
     std::vector<double> k1(dim), k2(dim), k3(dim), k4(dim);
 
-    // y0 ← state
-    for (int i = 0; i < dim; ++i) y0[i] = state[i];
+        for (int i = 0; i < dim; ++i) y0[i] = state[i];
 
     const bool dimless = (dimensionless != 0);
 
-    // k1
     computeDerivative(y0.data(), k1.data(), bodies, masses, dimless, softeningParamSquared);
 
-    // k2 при y0 + h/2 * k1
     for (int i = 0; i < dim; ++i) y_temp[i] = y0[i] + 0.5 * timestep * k1[i];
     computeDerivative(y_temp.data(), k2.data(), bodies, masses, dimless, softeningParamSquared);
 
-    // k3 при y0 + h/2 * k2
     for (int i = 0; i < dim; ++i) y_temp[i] = y0[i] + 0.5 * timestep * k2[i];
     computeDerivative(y_temp.data(), k3.data(), bodies, masses, dimless, softeningParamSquared);
 
-    // k4 при y0 + h * k3
     for (int i = 0; i < dim; ++i) y_temp[i] = y0[i] + timestep * k3[i];
     computeDerivative(y_temp.data(), k4.data(), bodies, masses, dimless, softeningParamSquared);
 
-    // Обновляем state по формуле RK4
     for (int i = 0; i < dim; ++i) {
         state[i] = y0[i] + (timestep / 6.0) * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
     }
