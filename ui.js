@@ -667,7 +667,7 @@ var userInput = (function(){
 
 userInput.init();
 
-window.addEventListener('load', function() {
+document.addEventListener('DOMContentLoaded', function() {
     var loaderWrapper = document.getElementById('loader-wrapper');
     if(loaderWrapper){
         loaderWrapper.classList.add('hidden');
